@@ -2,56 +2,138 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Wybór Etykiety Raja</title>
+    <title>Wizualny Selektor Etykiet Raja</title>
     
     <script src="https://rawgit.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
     
     <style>
-        body { font-family: Arial, sans-serif; padding: 10px; margin: 0; background-color: #fff; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 13px; }
-        select { width: 100%; padding: 6px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; }
-        .preview { margin-top: 15px; font-size: 11px; color: #666; text-align: center; }
+        body { font-family: Arial, sans-serif; padding: 12px; margin: 0; background-color: #fff; color: #333; }
+        .section-title { font-weight: bold; display: block; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; color: #514f4d; }
+        
+        /* Styl siatki z obrazkami */
+        .gallery-container { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; border: 1px solid #b0adab; padding: 8px; border-radius: 4px; }
+        .gallery-item { padding: 6px; border: 1px solid #dddbda; border-radius: 4px; cursor: pointer; text-align: center; background: #fff; transition: all 0.2s; }
+        .gallery-item:hover { border-color: #0070d2; background-color: #f3f2f1; transform: scale(1.02); }
+        
+        /* Widok wybranego elementu */
+        .selected-view { display: none; border: 1px solid #0070d2; padding: 12px; border-radius: 4px; background-color: #f4f6f9; text-align: center; position: relative; }
+        
+        /* Przycisk resetu (strzałka odświeżania) */
+        .reset-btn { position: absolute; top: 5px; right: 5px; background: #0070d2; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; transition: background 0.2s; }
+        .reset-btn:hover { background: #005fb2; }
+        
+        .status-msg { font-size: 12px; color: #0070d2; margin-bottom: 8px; font-style: italic; }
+        .hidden { display: none !important; }
+        img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
 
-    <label for="labelSelect">Wybierz etykietę:</label>
-    <select id="labelSelect">
-        <option value="">-- Wybierz etykietę --</option>
-        <option value="https://imgnews.raja-group.com/00-structure/label/UK-label-flash-sale.png">Vente flash</option>
-        <option value="https://imgnews.raja-group.com/00-structure/label/FR-label-clearance.png">Déstockage</option>
-        <option value="https://imgnews.raja-group.com/00-structure/label/UK-label-web-only.png">Exclu web</option>
-    </select>
+    <div id="step-selection">
+        <div class="section-title">Wybierz etykietę klikając w nią:</div>
+        <div id="status" class="status-msg">Pobieranie grafik ze strony Raja...</div>
+        <div id="gallery" class="gallery-container">
+            </div>
+    </div>
 
-    <div class="preview" id="previewContainer">Wybierz coś, aby zobaczyć podgląd</div>
+    <div id="step-selected" class="selected-view">
+        <button class="reset-btn" id="resetBtn" title="Zmień etykietę">&#x21BB;</button>
+        <div class="section-title" style="margin-bottom: 15px; color: #2e7442;">Wybrana etykieta w mailu:</div>
+        <div id="chosenImageContainer"></div>
+    </div>
 
     <script>
-        // Inicjalizacja połączenia z edytorem Salesforce
+        // 1. Inicjalizacja SFMC Block SDK
         let sdk;
         try {
-            sdk = new blockSDK();
+            if (typeof blockSDK !== 'undefined') {
+                sdk = new blockSDK();
+            } else {
+                throw new Error("Brak SDK");
+            }
         } catch(e) {
-            console.error("Błąd inicjalizacji SFMC Block SDK", e);
+            console.log("Tryb testowy poza SFMC.");
+            sdk = { setContent: function(html) { console.log("[Mock SFMC] Wstrzyknięto:", html); } };
         }
 
-        document.getElementById('labelSelect').addEventListener('change', function() {
-            const selectedUrl = this.value;
-            const selectedAlt = this.options[this.selectedIndex].text;
-            const previewContainer = document.getElementById('previewContainer');
+        const targetUrl = 'https://imgnews.raja-group.com/00-structure/label/_label-all-pays.html';
+        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl);
 
-            if (selectedUrl && sdk) {
-                // Dokładnie ten kod HTML zostanie "wstrzyknięty" automatycznie do Twojego e-maila
-                const htmlToInsert = `<img class="resize imgPriority" src="${selectedUrl}" height="26" width="268" style="display:block; padding:0; margin:0; border:0; height:26px; width:268px;" alt="${selectedAlt}">`;
+        // Elementy DOM
+        const galleryEl = document.getElementById('gallery');
+        const statusEl = document.getElementById('status');
+        const stepSelection = document.getElementById('step-selection');
+        const stepSelected = document.getElementById('step-selected');
+        const chosenImageContainer = document.getElementById('chosenImageContainer');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // 2. Pobieranie danych i budowanie wizualnej galerii
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("Problem z siecią");
                 
-                // Pokazujemy podgląd w panelu bocznym
-                previewContainer.innerHTML = `<img src="${selectedUrl}" height="26" width="268" style="max-width:100%;">`;
+                const data = await response.json();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
                 
-                // KOMENDA DO SFMC: "Wstaw ten kod w miejsce upuszczonego bloku"
-                sdk.setContent(htmlToInsert);
-            } else if (sdk) {
-                previewContainer.innerHTML = 'Wybierz coś, aby zobaczyć podgląd';
-                sdk.setContent(''); 
+                // Szukamy obrazków (obsługujemy klasę resize oraz imgPriority)
+                const fetchedImages = doc.querySelectorAll('img.resize');
+                
+                if (fetchedImages.length === 0) throw new Error("Brak obrazków");
+
+                statusEl.innerText = `Załadowano pomyślnie ${fetchedImages.length} etykiet.`;
+                galleryEl.innerHTML = ''; // Czyszczenie loadera
+
+                fetchedImages.forEach((img) => {
+                    const src = img.src;
+                    const alt = img.getAttribute('alt') || 'Etykieta';
+
+                    // Tworzymy klikalny kafelek dla marketera
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    item.innerHTML = `<img src="${src}" alt="${alt}" title="${alt}">`;
+                    
+                    // Akcja po kliknięciu w dany obrazek
+                    item.addEventListener('click', () => {
+                        selectImage(src, alt);
+                    });
+
+                    galleryEl.appendChild(item);
+                });
+
+            } catch (error) {
+                console.error(error);
+                statusEl.style.color = '#c23934';
+                statusEl.innerText = "Nie udało się załadować grafik. Sprawdź połączenie.";
             }
+        });
+
+        // 3. Funkcja zatwierdzająca wybór obrazka
+        function selectImage(url, alt) {
+            // Dokładnie taki czysty kod HTML zostaje wstrzyknięty do maila
+            const htmlToInsert = `<img class="resize" src="${url}" height="26" width="268" style="display:block; padding:0; margin:0; border:0; height:26px; width:268px;" alt="${alt}">`;
+            
+            // Przełączanie widoków w panelu SFMC
+            stepSelection.classList.add('hidden');
+            stepSelected.style.display = 'block';
+            
+            // Pokazujemy co zostało wybrane
+            chosenImageContainer.innerHTML = htmlToInsert;
+            
+            // Popychamy kod bezpośrednio do maila
+            sdk.setContent(htmlToInsert);
+        }
+
+        // 4. Kliknięcie w strzałkę odświeżania (Reset)
+        resetBtn.addEventListener('click', () => {
+            // Czyścimy zawartość w mailu za pomocą SDK
+            sdk.setContent('');
+            
+            // Przywracamy widok pełnej listy etykiet
+            stepSelected.style.display = 'none';
+            stepSelection.classList.remove('hidden');
+            chosenImageContainer.innerHTML = '';
         });
     </script>
 </body>
