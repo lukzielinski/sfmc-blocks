@@ -1,20 +1,84 @@
-<label for="bgColor">Wybierz kolor tła:</label>
-<input type="color" id="bgColor" value="#ffffff">
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Custom Content Block - Color Picker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 15px;
+            margin: 0;
+            background-color: #f4f6f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: 1px solid #dddbda;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
 
-<script src="https://developer.salesforce.com/docs/atlas.en-us.mc-sdk.meta/mc-sdk/js/blocksdk.js"></script>
-<script>
-    var sdk = new window.sfdc.BlockSDK();
+    <div class="form-group">
+        <label for="bgColor">Wybierz kolor tła:</label>
+        <input type="color" id="bgColor" value="#ffffff">
+    </div>
 
-    // Nasłuchiwanie zmiany koloru
-    document.getElementById('bgColor').addEventListener('input', function(event) {
-        var selectedColor = event.target.value;
+    <script src="https://developer.salesforce.com/docs/atlas.en-us.mc-sdk.meta/mc-sdk/js/blocksdk.js"></script>
+    
+    <script>
+        // Inicjalizacja SDK po załadowaniu strony
+        document.addEventListener("DOMContentLoaded", function() {
+            var sdk = new window.sfdc.BlockSDK();
+            var colorPicker = document.getElementById('bgColor');
 
-        // Generowanie kodu HTML, który trafi do maila
-        var htmlContent = '<div style="background-color: ' + selectedColor + '; padding: 20px;">Twój tekst lub zawartość tutaj</div>';
+            // 1. Pobranie zapisanego wcześniej stanu (żeby po ponownym otwarciu maila kolor się nie zresetował)
+            sdk.getData(function(data) {
+                if (data && data.bgColor) {
+                    colorPicker.value = data.bgColor;
+                }
+            });
 
-        // Przekazanie zawartości do Salesforce Marketing Cloud
-        sdk.setContent(htmlContent, function(content) {
-            // Kod został pomyślnie zaktualizowany w mailu
+            // 2. Funkcja generująca HTML i zapisująca dane w SFMC
+            function updateMailContent(selectedColor) {
+                // Najpierw zapisujemy dane strukturalne w SFMC
+                sdk.setData({
+                    bgColor: selectedColor
+                }, function(hasErrors, data) {
+                    if (!hasErrors) {
+                        // Jeśli dane zapisały się poprawnie, generujemy czysty HTML dla maila.
+                        // Używamy tabeli (table), bo divy w starszych Outlookach nie zawsze wspierają tła.
+                        var emailHtml = '<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ' + selectedColor + ';">' +
+                                        '  <tr>' +
+                                        '    <td align="center" style="padding: 40px; font-family: Arial, sans-serif; font-size: 16px; color: #333333;">' +
+                                        '      <strong>Cześć!</strong> To jest tekst wygenerowany przez Twój Custom Content Block.' +
+                                        '    </td>' +
+                                        '  </tr>' +
+                                        '</table>';
+
+                        // Wstrzyknięcie kodu do podglądu i szablonu maila
+                        sdk.setContent(emailHtml);
+                    }
+                });
+            }
+
+            // 3. Nasłuchiwanie na zmianę koloru przez użytkownika
+            colorPicker.addEventListener('input', function(event) {
+                updateMailContent(event.target.value);
+            });
         });
-    });
-</script>
+    </script>
+
+</body>
+</html>
