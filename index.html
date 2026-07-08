@@ -1,146 +1,165 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <title>SFMC Label Picker</title>
+<meta charset="UTF-8">
+<title>SFMC Label Picker</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<style>
 
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #fff;
-        }
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    margin:20px;
+}
 
-        h3 {
-            margin-top: 0;
-            margin-bottom: 20px;
-        }
+h3{
+    margin-bottom:20px;
+}
 
-        .item {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            transition: .2s;
-        }
+#gallery{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
 
-        .item:hover {
-            background: #f5f5f5;
-            border-color: #0070d2;
-        }
+.item{
+    border:1px solid #ddd;
+    border-radius:5px;
+    padding:8px;
+    cursor:pointer;
+}
 
-        .thumb {
-            width: 100px;
-            margin-right: 15px;
-        }
+.item:hover{
+    border-color:#0070d2;
+    background:#f5f5f5;
+}
 
-        #preview {
-            margin-top: 30px;
-            text-align: center;
-            border-top: 1px solid #ddd;
-            padding-top: 20px;
-        }
+.item img{
+    width:268px;
+    display:block;
+}
 
-        #active-label {
-            display: none;
-            max-width: 100%;
-        }
-    </style>
+#preview{
+    margin-top:30px;
+    border-top:1px solid #ddd;
+    padding-top:20px;
+}
+
+#preview img{
+    width:268px;
+}
+
+.loading{
+    color:#888;
+}
+
+</style>
+
 </head>
 
 <body>
 
-<h3>Wybierz etykietę</h3>
+<h3>Ładowanie etykiet...</h3>
 
-<div class="item"
-     data-url="https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png"
-     data-alt="Sélection du mois">
-
-    <img class="thumb"
-         src="https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png">
-
-    <span>Sélection du mois</span>
-
-</div>
-
-<div class="item"
-     data-url="https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png"
-     data-alt="Offre spéciale">
-
-    <img class="thumb"
-         src="https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png">
-
-    <span>Offre spéciale</span>
-
+<div id="gallery" class="loading">
+Pobieranie...
 </div>
 
 <div id="preview">
-    <img id="active-label">
+    <img id="selected" style="display:none;">
 </div>
 
 <script src="blocksdk.js"></script>
 
 <script>
 
-let sdk = null;
+const sdk = new sfdc.BlockSDK();
 
-if (window.sfdc && window.sfdc.BlockSDK) {
-    sdk = new window.sfdc.BlockSDK();
-} else {
-    console.error("BlockSDK nie został załadowany.");
+const SOURCE =
+"https://imgnews.raja-group.com/00-structure/crit-green/_crit-green-all-pays.html";
+
+const gallery=document.getElementById("gallery");
+const preview=document.getElementById("selected");
+
+async function loadGallery(){
+
+    try{
+
+        const response=await fetch(SOURCE);
+
+        const html=await response.text();
+
+        const parser=new DOMParser();
+
+        const doc=parser.parseFromString(html,"text/html");
+
+        const images=doc.querySelectorAll("img");
+
+        gallery.innerHTML="";
+
+        images.forEach(image=>{
+
+            const div=document.createElement("div");
+
+            div.className="item";
+
+            div.innerHTML=`
+                <img
+                    src="${image.src}"
+                    alt="${image.alt}"
+                >
+                <div>${image.alt}</div>
+            `;
+
+            div.onclick=function(){
+
+                preview.src=image.src;
+                preview.alt=image.alt;
+                preview.style.display="block";
+
+                sdk.setContent(`
+<img
+src="${image.src}"
+width="268"
+height="26"
+style="display:block;padding:0;margin:0;border:0;height:26px;width:268px;"
+alt="${image.alt}">
+`);
+
+                sdk.setData({
+                    src:image.src,
+                    alt:image.alt
+                });
+
+            };
+
+            gallery.appendChild(div);
+
+        });
+
+    }
+    catch(e){
+
+        gallery.innerHTML="<b>Błąd podczas pobierania HTML.</b>";
+
+        console.error(e);
+
+    }
+
 }
 
-const preview = document.getElementById("active-label");
+sdk.getData(function(data){
 
-document.querySelectorAll(".item").forEach(item => {
+    if(data && data.src){
 
-    item.addEventListener("click", function () {
+        preview.src=data.src;
+        preview.alt=data.alt;
+        preview.style.display="block";
 
-        const url = this.dataset.url;
-        const alt = this.dataset.alt;
-
-        preview.src = url;
-        preview.style.display = "block";
-
-        if (sdk) {
-
-            sdk.setContent(
-                `<img src="${url}" alt="${alt}" width="268" height="26" style="display:block;border:0;">`
-            );
-
-            sdk.setData({
-                selectedUrl: url,
-                selectedAlt: alt
-            });
-
-        }
-
-    });
+    }
 
 });
 
-if (sdk) {
-
-    sdk.getData(function(data){
-
-        if(data && data.selectedUrl){
-
-            preview.src = data.selectedUrl;
-            preview.style.display = "block";
-
-        }
-
-    });
-
-}
+loadGallery();
 
 </script>
 
