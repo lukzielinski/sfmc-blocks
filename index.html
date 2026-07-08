@@ -1,19 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="pl">
 <head>
+    <meta charset="UTF-8">
+    <title>Wybierak Etykiet</title>
     <style>
-        /* Usuwamy wszelkie ramki */
-        img {
-            border: none !important;
-            cursor: pointer;
-            display: block;
+        body { font-family: sans-serif; padding: 20px; }
+        .resize { 
+            cursor: pointer; 
+            border: none !important; 
+            display: block; 
+            margin-bottom: 10px; 
+            transition: transform 0.2s;
         }
+        .resize:hover { transform: scale(1.02); }
     </style>
 </head>
 <body>
 
-    <!-- Twoja lista obrazków -->
-    <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/ALL-label-blank.png" height="26" width="268" alt="">
+    <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/ALL-label-blank.png" height="26" width="268" alt="Blank">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png" height="26" width="268" alt="Sélection du mois">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png" height="26" width="268" alt="Offre spéciale">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-anniversary-offer.png" height="26" width="268" alt="Offre anniversaire">
@@ -22,7 +26,6 @@
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-additional-discount-20p.png" height="26" width="268" alt="20 % de REMISE supplémentaire">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-2-1-parcel.png" height="26" width="268" alt="2 colis achetés, 1 colis offert">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-2-1.png" height="26" width="268" alt="2 achetés, 1 offert">
-    <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png" height="26" width="268" alt="offre spéciale">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-location.png" height="26" width="268" alt="Location possible">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-financement.png" height="26" width="268" alt="Financement possible">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-rental-info.png" height="26" width="268" alt="ESSAI GRATUIT PENDANT 1 MOIS">
@@ -45,20 +48,31 @@
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-special-christmas.png" height="26" width="268" alt="Spécial Fêtes">
 
     <script>
-        document.querySelectorAll('.resize').forEach(img => {
-            img.addEventListener('click', function() {
-                // Kopiowanie do schowka
-                navigator.clipboard.writeText(this.outerHTML);
+    document.querySelectorAll('.resize').forEach(img => {
+        img.addEventListener('click', function() {
+            // 1. Tworzymy kopię obrazka, aby zachować jego parametry
+            const clone = this.cloneNode(true);
+            
+            // 2. Kopiujemy do schowka
+            navigator.clipboard.writeText(clone.outerHTML).then(() => {
                 
-                // Usuwanie wszystkiego z body i wstawienie tylko tego obrazka
+                // 3. Czyścimy całe body
                 document.body.innerHTML = '';
-                document.body.appendChild(this);
                 
-                // Dodatkowe wyczyszczenie stylów
-                this.style.border = "none";
-                this.style.margin = "0";
+                // 4. Resetujemy style dla czystego widoku
+                clone.style.border = "none";
+                clone.style.margin = "0";
+                clone.style.display = "block";
+                clone.style.cursor = "default"; // Usuwamy efekt "kliknięcia" po wybraniu
+                
+                // 5. Wstawiamy obrazek
+                document.body.appendChild(clone);
+                
+                // 6. Opcjonalne potwierdzenie
+                console.log("Gotowe: " + clone.outerHTML);
             });
         });
+    });
     </script>
 </body>
 </html>
