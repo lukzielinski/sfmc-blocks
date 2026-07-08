@@ -4,18 +4,38 @@
     <meta charset="UTF-8">
     <title>Wybierak Etykiet</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
+        body { font-family: sans-serif; padding: 20px; position: relative; }
         .resize { 
-            cursor: pointer; 
+            cursor: grab; /* Zmiana kursora na "łapkę" sugerującą możliwość przeciągania */
             border: none !important; 
             display: block; 
             margin-bottom: 10px; 
             transition: transform 0.2s;
+            user-select: none;
+            -webkit-user-drag: element; /* Wymuszenie zachowania drag na Safari/Chrome */
         }
         .resize:hover { transform: scale(1.02); }
+        .resize:active { cursor: grabbing; }
+
+        /* Styl powiadomienia o skopiowaniu */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
+
+    <div id="toast">Skopiowano kod do schowka!</div>
 
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/ALL-label-blank.png" height="26" width="268" alt="Blank">
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png" height="26" width="268" alt="Sélection du mois">
@@ -48,28 +68,48 @@
     <img class="resize" src="https://imgnews.raja-group.com/00-structure/label/FR-label-special-christmas.png" height="26" width="268" alt="Spécial Fêtes">
 
     <script>
+    const toast = document.getElementById('toast');
+
     document.querySelectorAll('.resize').forEach(img => {
-        img.addEventListener('click', function() {
-            // 1. Tworzymy kopię obrazka, aby zachować jego parametry
-            const clone = this.cloneNode(true);
+        // Sprawiamy, że obrazek jest jawnie przeciągalny
+        img.setAttribute('draggable', 'true');
+
+        // FUNKCJA OCHRONNA: Generuje czysty kod HTML do wklejenia/upuszczenia
+        function getCleanHTML(element) {
+            const clone = element.cloneNode(true);
+            // Czyścimy zbędne style CSS, które były potrzebne tylko w wybieraku
+            clone.style.border = "none";
+            clone.style.margin = "0";
+            clone.style.display = "inline-block";
+            clone.style.cursor = "default";
+            clone.style.transform = "none";
+            // Usuwamy klasę wybieraka, by nie psuła stylów w TinyMCE
+            clone.classList.remove('resize'); 
+            return clone.outerHTML;
+        }
+
+        // 1. OBSŁUGA PRZECIĄGANIA (Drag and Drop)
+        img.addEventListener('dragstart', function(e) {
+            const cleanHTML = getCleanHTML(this);
             
-            // 2. Kopiujemy do schowka
-            navigator.clipboard.writeText(clone.outerHTML).then(() => {
+            // Przekazujemy czysty HTML do TinyMCE
+            e.dataTransfer.setData('text/html', cleanHTML);
+            e.dataTransfer.setData('text/plain', this.src); // fallback jako sam link
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+
+        // 2. OBSŁUGA KLIKNIĘCIA (Kopiowanie do schowka)
+        img.addEventListener('click', function() {
+            const cleanHTML = getCleanHTML(this);
+
+            navigator.clipboard.writeText(cleanHTML).then(() => {
+                // Pokazuje ładne powiadomienie zamiast czyszczenia ekranu
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 2000);
                 
-                // 3. Czyścimy całe body
-                document.body.innerHTML = '';
-                
-                // 4. Resetujemy style dla czystego widoku
-                clone.style.border = "none";
-                clone.style.margin = "0";
-                clone.style.display = "block";
-                clone.style.cursor = "default"; // Usuwamy efekt "kliknięcia" po wybraniu
-                
-                // 5. Wstawiamy obrazek
-                document.body.appendChild(clone);
-                
-                // 6. Opcjonalne potwierdzenie
-                console.log("Gotowe: " + clone.outerHTML);
+                console.log("Skopiowano do schowka: " + cleanHTML);
+            }).catch(err => {
+                console.error("Błąd zapisu do schowka: ", err);
             });
         });
     });
