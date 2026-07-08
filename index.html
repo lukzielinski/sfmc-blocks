@@ -1,84 +1,57 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Custom Content Block - Color Picker</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 15px;
-            margin: 0;
-            background-color: #f4f6f9;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
-        }
-        input[type="color"] {
-            width: 100%;
-            height: 40px;
-            border: 1px solid #dddbda;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
+        #sidebar { width: 300px; overflow-y: auto; padding: 10px; border-right: 1px solid #ccc; background: #f9f9f9; }
+        #preview { flex-grow: 1; padding: 20px; display: flex; align-items: center; justify-content: center; }
+        .item { cursor: pointer; padding: 8px; border-bottom: 1px solid #ddd; display: flex; align-items: center; }
+        .item:hover { background: #eef; }
+        img.thumb { width: 100px; margin-right: 10px; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
 
-    <div class="form-group">
-        <label for="bgColor">Wybierz kolor tła:</label>
-        <input type="color" id="bgColor" value="#ffffff">
+<div id="sidebar">
+    <h3>Wybierz etykietę:</h3>
+    <div class="item" onclick="selectLabel('https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png', 'Sélection du mois')">
+        <img class="thumb" src="https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png">
+        <span>Sélection du mois</span>
+    </div>
+    <div class="item" onclick="selectLabel('https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png', 'Offre spéciale')">
+        <img class="thumb" src="https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png">
+        <span>Offre spéciale</span>
+    </div>
     </div>
 
-    <script src="https://developer.salesforce.com/docs/atlas.en-us.mc-sdk.meta/mc-sdk/js/blocksdk.js"></script>
-    
-    <script>
-        // Inicjalizacja SDK po załadowaniu strony
-        document.addEventListener("DOMContentLoaded", function() {
-            var sdk = new window.sfdc.BlockSDK();
-            var colorPicker = document.getElementById('bgColor');
+<div id="preview">
+    <img id="active-label" src="" style="display:none; max-width: 100%;">
+</div>
 
-            // 1. Pobranie zapisanego wcześniej stanu (żeby po ponownym otwarciu maila kolor się nie zresetował)
-            sdk.getData(function(data) {
-                if (data && data.bgColor) {
-                    colorPicker.value = data.bgColor;
-                }
-            });
+<script src="https://blocksdk.sfdc.io/blocksdk.js"></script>
+<script>
+    var sdk = new window.sfdc.BlockSDK();
 
-            // 2. Funkcja generująca HTML i zapisująca dane w SFMC
-            function updateMailContent(selectedColor) {
-                // Najpierw zapisujemy dane strukturalne w SFMC
-                sdk.setData({
-                    bgColor: selectedColor
-                }, function(hasErrors, data) {
-                    if (!hasErrors) {
-                        // Jeśli dane zapisały się poprawnie, generujemy czysty HTML dla maila.
-                        // Używamy tabeli (table), bo divy w starszych Outlookach nie zawsze wspierają tła.
-                        var emailHtml = '<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ' + selectedColor + ';">' +
-                                        '  <tr>' +
-                                        '    <td align="center" style="padding: 40px; font-family: Arial, sans-serif; font-size: 16px; color: #333333;">' +
-                                        '      <strong>Cześć!</strong> To jest tekst wygenerowany przez Twój Custom Content Block.' +
-                                        '    </td>' +
-                                        '  </tr>' +
-                                        '</table>';
+    function selectLabel(url, altText) {
+        // 1. Pokaż w podglądzie bloku
+        const img = document.getElementById('active-label');
+        img.src = url;
+        img.style.display = 'block';
 
-                        // Wstrzyknięcie kodu do podglądu i szablonu maila
-                        sdk.setContent(emailHtml);
-                    }
-                });
-            }
+        // 2. Wstrzyknij kod do edytora e-maila
+        const htmlCode = `<img src="${url}" width="268" height="26" style="display:block; border:0;" alt="${altText}">`;
+        sdk.setContent(htmlCode);
+        
+        // 3. Zapisz wybór, żeby blok go pamiętał przy ponownym otwarciu
+        sdk.setData({ selectedUrl: url, selectedAlt: altText });
+    }
 
-            // 3. Nasłuchiwanie na zmianę koloru przez użytkownika
-            colorPicker.addEventListener('input', function(event) {
-                updateMailContent(event.target.value);
-            });
-        });
-    </script>
-
+    // Wczytaj zapisany stan przy otwarciu
+    sdk.getData(function(data) {
+        if (data.selectedUrl) {
+            selectLabel(data.selectedUrl, data.selectedAlt);
+        }
+    });
+</script>
 </body>
 </html>
