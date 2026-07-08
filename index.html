@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Wybór Etykiety Raja</title>
+    
+    <script src="https://rawgit.com/salesforce-marketingcloud/blocksdk/master/blocksdk.js"></script>
+    
+    <style>
+        body { font-family: Arial, sans-serif; padding: 10px; margin: 0; background-color: #fff; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 13px; }
+        select { width: 100%; padding: 6px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; }
+        .preview { margin-top: 15px; font-size: 11px; color: #666; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <label for="labelSelect">Wybierz etykietę:</label>
+    <select id="labelSelect">
+        <option value="">-- Wybierz etykietę --</option>
+        <option value="https://imgnews.raja-group.com/00-structure/label/UK-label-flash-sale.png">Vente flash</option>
+        <option value="https://imgnews.raja-group.com/00-structure/label/FR-label-clearance.png">Déstockage</option>
+        <option value="https://imgnews.raja-group.com/00-structure/label/UK-label-web-only.png">Exclu web</option>
+    </select>
+
+    <div class="preview" id="previewContainer">Wybierz coś, aby zobaczyć podgląd</div>
+
+    <script>
+        // Inicjalizacja połączenia z edytorem Salesforce
+        let sdk;
+        try {
+            sdk = new blockSDK();
+        } catch(e) {
+            console.error("Błąd inicjalizacji SFMC Block SDK", e);
+        }
+
+        document.getElementById('labelSelect').addEventListener('change', function() {
+            const selectedUrl = this.value;
+            const selectedAlt = this.options[this.selectedIndex].text;
+            const previewContainer = document.getElementById('previewContainer');
+
+            if (selectedUrl && sdk) {
+                // Dokładnie ten kod HTML zostanie "wstrzyknięty" automatycznie do Twojego e-maila
+                const htmlToInsert = `<img class="resize imgPriority" src="${selectedUrl}" height="26" width="268" style="display:block; padding:0; margin:0; border:0; height:26px; width:268px;" alt="${selectedAlt}">`;
+                
+                // Pokazujemy podgląd w panelu bocznym
+                previewContainer.innerHTML = `<img src="${selectedUrl}" height="26" width="268" style="max-width:100%;">`;
+                
+                // KOMENDA DO SFMC: "Wstaw ten kod w miejsce upuszczonego bloku"
+                sdk.setContent(htmlToInsert);
+            } else if (sdk) {
+                previewContainer.innerHTML = 'Wybierz coś, aby zobaczyć podgląd';
+                sdk.setContent(''); 
+            }
+        });
+    </script>
+</body>
+</html>
