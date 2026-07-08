@@ -1,57 +1,134 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <style>
-        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
-        #sidebar { width: 300px; overflow-y: auto; padding: 10px; border-right: 1px solid #ccc; background: #f9f9f9; }
-        #preview { flex-grow: 1; padding: 20px; display: flex; align-items: center; justify-content: center; }
-        .item { cursor: pointer; padding: 8px; border-bottom: 1px solid #ddd; display: flex; align-items: center; }
-        .item:hover { background: #eef; }
-        img.thumb { width: 100px; margin-right: 10px; border: 1px solid #ccc; }
-    </style>
+<meta charset="UTF-8">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 15px;
+}
+
+#sidebar {
+    width: 100%;
+}
+
+h3 {
+    margin-top: 0;
+}
+
+.item {
+    cursor: pointer;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+}
+
+.item:hover {
+    background: #f5f5f5;
+}
+
+.thumb {
+    width: 100px;
+    margin-right: 15px;
+    border: 1px solid #ccc;
+}
+
+#preview {
+    margin-top: 25px;
+    text-align: center;
+}
+
+#active-label {
+    max-width: 100%;
+    display: none;
+}
+</style>
+
 </head>
+
 <body>
 
 <div id="sidebar">
-    <h3>Wybierz etykietę:</h3>
-    <div class="item" onclick="selectLabel('https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png', 'Sélection du mois')">
-        <img class="thumb" src="https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png">
-        <span>Sélection du mois</span>
-    </div>
-    <div class="item" onclick="selectLabel('https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png', 'Offre spéciale')">
-        <img class="thumb" src="https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png">
-        <span>Offre spéciale</span>
-    </div>
-    </div>
+
+<h3>Wybierz etykietę:</h3>
+
+<div class="item"
+     onclick="selectLabel('https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png','Sélection du mois')">
+
+<img class="thumb"
+src="https://imgnews.raja-group.com/00-structure/label/FR-label-month-selection.png">
+
+<span>Sélection du mois</span>
+
+</div>
+
+<div class="item"
+     onclick="selectLabel('https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png','Offre spéciale')">
+
+<img class="thumb"
+src="https://imgnews.raja-group.com/00-structure/label/FR-label-special-offer.png">
+
+<span>Offre spéciale</span>
+
+</div>
+
+</div>
 
 <div id="preview">
-    <img id="active-label" src="" style="display:none; max-width: 100%;">
+
+<img id="active-label">
+
 </div>
 
 <script src="https://blocksdk.sfdc.io/blocksdk.js"></script>
+
 <script>
-    var sdk = new window.sfdc.BlockSDK();
 
-    function selectLabel(url, altText) {
-        // 1. Pokaż w podglądzie bloku
-        const img = document.getElementById('active-label');
-        img.src = url;
-        img.style.display = 'block';
+const sdk = new window.sfdc.BlockSDK();
 
-        // 2. Wstrzyknij kod do edytora e-maila
-        const htmlCode = `<img src="${url}" width="268" height="26" style="display:block; border:0;" alt="${altText}">`;
-        sdk.setContent(htmlCode);
-        
-        // 3. Zapisz wybór, żeby blok go pamiętał przy ponownym otwarciu
-        sdk.setData({ selectedUrl: url, selectedAlt: altText });
-    }
+sdk.ready(function () {
 
-    // Wczytaj zapisany stan przy otwarciu
-    sdk.getData(function(data) {
-        if (data.selectedUrl) {
-            selectLabel(data.selectedUrl, data.selectedAlt);
+    sdk.getData().then(function(data){
+
+        if(data && data.selectedUrl){
+
+            const img = document.getElementById("active-label");
+
+            img.src = data.selectedUrl;
+            img.style.display = "block";
         }
+
     });
+
+});
+
+function selectLabel(url, altText){
+
+    const img = document.getElementById("active-label");
+
+    img.src = url;
+    img.style.display = "block";
+
+    const html =
+        '<img src="' + url + '"' +
+        ' width="268"' +
+        ' height="26"' +
+        ' style="display:block;border:0;"' +
+        ' alt="' + altText + '">';
+
+    sdk.setContent(html);
+
+    sdk.setData({
+        selectedUrl: url,
+        selectedAlt: altText
+    });
+
+}
+
 </script>
+
 </body>
 </html>
